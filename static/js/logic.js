@@ -1,5 +1,13 @@
-// Create a map using Leaflet that plots all of the earthquakes from your data set 
-// based on their longitude and latitude.
+var plateLink = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json";
+var plateLines = new L.LayerGroup();
+
+d3.json(plateLink, function(data){
+  var plates = L.geoJSON(data, {
+    style: function (feature) {
+        return {color: 'orange'};
+    }
+  }).addTo(plateLines);
+});
 
 function getColor(d) {
   return d > 5 ? '#E31A1C' :
@@ -21,13 +29,30 @@ function createMap(locations){
     accessToken: API_KEY
   });
 
+  var satellite = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+    maxZoom: 18,
+    id: "mapbox.satellite",
+    accessToken: API_KEY
+  });
+
+  var streets = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+    maxZoom: 18,
+    id: "mapbox.streets",
+    accessToken: API_KEY
+  });
+
   // Create a baseMaps object to hold the lightmap layer
   var baseMaps = {
-    "Light Map": lightmap
+    "Light Map": lightmap,
+    "Satellite": satellite,
+    "Streets": streets
   };
 
-  var layers = {
-    Earthquakes: locations
+  var overlayMaps = {
+    "Earthquakes": locations,
+    "Fault Lines": plateLines
   };
 
   // Create the map object with options
@@ -36,6 +61,9 @@ function createMap(locations){
     zoom: 4,
     layers: [lightmap, locations]
   });
+
+  // Add layer control
+  L.control.layers(baseMaps, overlayMaps,{collapsed:false}).addTo(map);
 
   // Create a legend that will provide context for your map data.
   var legend = L.control({
@@ -56,12 +84,10 @@ function createMap(locations){
     return div;
   };
   legend.addTo(map);
-
-
 }
 
 // createMarkers function
-function createMarkers(earthquakeData){
+function createMarkers(earthquakeData, plates){
 
     var earthquakes = L.geoJSON(earthquakeData, {
       onEachFeature: function (feature, layer) {
@@ -93,3 +119,4 @@ var link = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.g
 d3.json(link, function(data){
   createMarkers(data.features);
 });
+
